@@ -1,0 +1,26 @@
+[
+  {
+    "title": "Brown Noise",
+    "category": "Deep",
+    "audio": "audio/brown-noise.wav",
+    "image": "images/brown-noise.svg",
+    "accent": "#d97745",
+    "crossfadeSeconds": 0.5
+  },
+  {
+    "title": "Pink Noise",
+    "category": "Balanced",
+    "audio": "audio/pink-noise.wav",
+    "image": "images/pink-noise.svg",
+    "accent": "#d65b88",
+    "crossfadeSeconds": 0.5
+  },
+  {
+    "title": "White Noise",
+    "category": "Bright",
+    "audio": "audio/white-noise.wav",
+    "image": "images/white-noise.svg",
+    "accent": "#4d86a8",
+    "crossfadeSeconds": 0.5
+  }
+]

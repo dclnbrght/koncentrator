@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#111827" />
+    <title>Koncentrator</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="app-header">
+        <div>
+          <h1>Koncentrator</h1>
+          <p class="eyebrow">Sound for focus</p>
+        </div>
+        <div class="status" aria-live="polite">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span id="statusText">Nothing playing</span>
+        </div>
+      </header>
+
+      <section id="categories" class="categories" aria-label="Audio categories"></section>
+    </main>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
