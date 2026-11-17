@@ -4,7 +4,11 @@ Koncentrator is a lightweight web app for playing ambient audio, designed to imp
 
 ## Configure audio tiles
 
-Edit [`src/config.json`](src/config.json). Each entry describes one tile:
+Note: It's best to use audio files where the waveform is mathematically wrapped. 
+
+Edit [`src/config.json`](src/config.json). 
+
+Each entry describes one tile:
 
 | Property | Description |
 | --- | --- |

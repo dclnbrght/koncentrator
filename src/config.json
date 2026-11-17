@@ -1,7 +1,7 @@
 [
   {
     "title": "Brown Noise",
-    "category": "Deep",
+    "category": "Focus",
     "audio": "audio/brown-noise.wav",
     "image": "images/brown-noise.svg",
     "accent": "#d97745",
@@ -9,7 +9,7 @@
   },
   {
     "title": "Pink Noise",
-    "category": "Balanced",
+    "category": "Focus",
     "audio": "audio/pink-noise.wav",
     "image": "images/pink-noise.svg",
     "accent": "#d65b88",
@@ -17,10 +17,34 @@
   },
   {
     "title": "White Noise",
-    "category": "Bright",
+    "category": "Focus",
     "audio": "audio/white-noise.wav",
     "image": "images/white-noise.svg",
     "accent": "#4d86a8",
+    "crossfadeSeconds": 0.5
+  },
+  {
+    "title": "Breeze",
+    "category": "Nature",
+    "audio": "audio/breeze.wav",
+    "image": "images/breeze.svg",
+    "accent": "#76bfa8",
+    "crossfadeSeconds": 0.5
+  },
+  {
+    "title": "Rain",
+    "category": "Nature",
+    "audio": "audio/rain.wav",
+    "image": "images/rain.svg",
+    "accent": "#7899c5",
+    "crossfadeSeconds": 0.5
+  },
+  {
+    "title": "Surf",
+    "category": "Nature",
+    "audio": "audio/surf.wav",
+    "image": "images/surf.svg",
+    "accent": "#40a9a8",
     "crossfadeSeconds": 0.5
   }
 ]

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#123947"/>
+      <stop offset="1" stop-color="#36a6a6"/>
+    </linearGradient>
+    <linearGradient id="foam" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#e4f5e8" stop-opacity=".36"/>
+      <stop offset=".52" stop-color="#e4f5e8" stop-opacity=".94"/>
+      <stop offset="1" stop-color="#e4f5e8" stop-opacity=".26"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#bg)"/>
+  <circle cx="615" cy="130" r="92" fill="#c5e8cf" opacity=".18"/>
+  <path d="M0 310 C110 260 205 275 300 328 C390 378 480 376 560 320 C635 267 715 260 800 292 V600 H0Z" fill="#176c78" opacity=".72"/>
+  <path d="M0 385 C120 335 210 345 315 398 C410 447 485 438 575 380 C650 330 720 322 800 350 V600 H0Z" fill="#105361" opacity=".85"/>
+  <path d="M-30 300 C95 247 205 258 306 315 C401 368 480 367 568 307 C657 246 730 247 830 280" fill="none" stroke="url(#foam)" stroke-width="17" stroke-linecap="round"/>
+  <path d="M-25 420 C100 372 205 379 310 430 C407 477 495 469 585 415 C670 365 743 365 825 393" fill="none" stroke="#c9eee0" stroke-width="8" stroke-linecap="round" opacity=".54"/>
+  <path d="M0 510 C120 470 230 480 340 525 S560 565 800 495 V600 H0Z" fill="#0c3d4b" opacity=".62"/>
+</svg>
