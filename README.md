@@ -20,3 +20,7 @@ Each entry describes one tile:
 | `crossfadeSeconds` | Crossfade duration at each loop boundary, in seconds; use `0` for seamless wrapped audio |
 
 Note: For audio files with a mathematically wrapped waveform, set `crossfadeSeconds` to `0` to use a single native looping source without the crossfade scheduler.
+
+## Install and use offline
+
+Koncentrator can be installed from browsers that support progressive web apps. 

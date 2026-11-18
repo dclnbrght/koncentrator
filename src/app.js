@@ -222,4 +222,9 @@ function stopListening() {
 
 window.addEventListener('pagehide', stopListening);
 
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./service-worker.js')
+    .catch((error) => console.error('Could not register service worker', error));
+}
+
 loadTiles();
