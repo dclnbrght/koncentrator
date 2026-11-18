@@ -8,19 +8,19 @@
     "crossfadeSeconds": 0.5
   },
   {
+    "title": "Amber Noise",
+    "category": "Focus",
+    "audio": "audio/amber-noise.wav",
+    "image": "images/amber-noise.svg",
+    "accent": "#c18136",
+    "crossfadeSeconds": 0.5
+  },
+  {
     "title": "Pink Noise",
     "category": "Focus",
     "audio": "audio/pink-noise.wav",
     "image": "images/pink-noise.svg",
     "accent": "#d65b88",
-    "crossfadeSeconds": 0.5
-  },
-  {
-    "title": "White Noise",
-    "category": "Focus",
-    "audio": "audio/white-noise.wav",
-    "image": "images/white-noise.svg",
-    "accent": "#4d86a8",
     "crossfadeSeconds": 0.5
   },
   {
