@@ -20,6 +20,10 @@ Koncentrator is a simple, responsive single-page web app that helps users concen
   - Image file path
   - Category
   - Crossfade duration in seconds
+- Keep track of how many minutes each audio file is listened to
+  - persist the minute values in local storage
+  - display the duration in X hrs Y mins format, at the top left of each tile, in grey font
+  - update the duration dynamically
 
 ## Visual and Technical Requirements
 

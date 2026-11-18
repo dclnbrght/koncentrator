@@ -1,5 +1,6 @@
 [
   {
+    "key": "brown-noise",
     "title": "Brown Noise",
     "category": "Focus",
     "audio": "audio/brown-noise.wav",
@@ -8,6 +9,7 @@
     "crossfadeSeconds": 0.5
   },
   {
+    "key": "amber-noise",
     "title": "Amber Noise",
     "category": "Focus",
     "audio": "audio/amber-noise.wav",
@@ -16,6 +18,7 @@
     "crossfadeSeconds": 0.5
   },
   {
+    "key": "pink-noise",
     "title": "Pink Noise",
     "category": "Focus",
     "audio": "audio/pink-noise.wav",
@@ -24,7 +27,8 @@
     "crossfadeSeconds": 0.5
   },
   {
-    "title": "Breeze",
+    "key": "breeze",
+    "title": "Wind",
     "category": "Nature",
     "audio": "audio/breeze.wav",
     "image": "images/breeze.svg",
@@ -32,6 +36,7 @@
     "crossfadeSeconds": 0.5
   },
   {
+    "key": "rain",
     "title": "Rain",
     "category": "Nature",
     "audio": "audio/rain.wav",
@@ -40,6 +45,7 @@
     "crossfadeSeconds": 0.5
   },
   {
+    "key": "surf",
     "title": "Surf",
     "category": "Nature",
     "audio": "audio/surf.wav",

@@ -1,11 +1,17 @@
 import { createPlaybackController } from './playback.js';
 
+const LISTENING_STORAGE_KEY = 'koncentrator-listening-minutes';
+const LISTENING_UPDATE_INTERVAL_MS = 60 * 1000;
 const categoriesContainer = document.querySelector('#categories');
 const status = document.querySelector('.status');
 const statusText = document.querySelector('#statusText');
 
 let activeTile = null;
 let playbackRequest = 0;
+let listeningSession = null;
+let listeningUpdateTimer = null;
+const listenedMinutesByKey = loadListeningMinutes();
+const listeningRemainderMsByKey = new Map();
 const playback = createPlaybackController((error, audioPath) => {
   if (activeTile?.dataset.audio !== audioPath) return;
 
@@ -49,12 +55,16 @@ function renderTiles(tiles) {
 }
 
 function createTile(tile) {
+  const listenedMinutes = listenedMinutesByKey[tile.key] ?? 0;
+
   return `
     <button class="audio-tile" type="button" aria-pressed="false"
       aria-label="Play ${tile.title}" style="--tile-accent: ${tile.accent}"
-      data-audio="${tile.audio}" data-crossfade-seconds="${tile.crossfadeSeconds}">
+      data-key="${tile.key}" data-audio="${tile.audio}"
+      data-crossfade-seconds="${tile.crossfadeSeconds}">
       <img class="tile-image" src="${tile.image}" alt="${tile.title} ambient texture" />
       <span class="tile-shade" aria-hidden="true"></span>
+      <span class="tile-duration">${formatListeningDuration(listenedMinutes)}</span>
       <span class="tile-details">
         <span class="tile-name">${tile.title}</span>
         <span class="play-button" aria-hidden="true"><span class="play-icon"></span></span>
@@ -87,6 +97,7 @@ async function toggleTile(tile) {
 
     await playback.play(tile.dataset.audio, configuredFade);
     if (request !== playbackRequest) return;
+    startListening(tile.dataset.key);
     statusText.textContent = `Playing ${title}`;
   } catch (error) {
     if (request !== playbackRequest) return;
@@ -98,6 +109,7 @@ async function toggleTile(tile) {
 }
 
 function stopActiveTile() {
+  stopListening();
   playbackRequest++;
   playback.stop();
 
@@ -111,5 +123,103 @@ function stopActiveTile() {
   status.classList.remove('is-playing');
   statusText.textContent = 'Nothing playing';
 }
+
+function loadListeningMinutes() {
+  try {
+    const storedMinutes = localStorage.getItem(LISTENING_STORAGE_KEY);
+    if (storedMinutes === null) return {};
+
+    const parsedMinutes = JSON.parse(storedMinutes);
+    if (!parsedMinutes || typeof parsedMinutes !== 'object' || Array.isArray(parsedMinutes)) {
+      throw new Error('Listening history must be an object');
+    }
+
+    const wholeMinutesByKey = {};
+    for (const [key, minutes] of Object.entries(parsedMinutes)) {
+      if (!key || !Number.isFinite(minutes) || minutes < 0) {
+        throw new Error('Listening history contains an invalid duration');
+      }
+      wholeMinutesByKey[key] = Math.floor(minutes);
+    }
+
+    if (Object.entries(parsedMinutes).some(
+      ([key, minutes]) => minutes !== wholeMinutesByKey[key],
+    )) {
+      try {
+        localStorage.setItem(LISTENING_STORAGE_KEY, JSON.stringify(wholeMinutesByKey));
+      } catch (error) {
+        console.error('Could not normalize listening history in local storage', error);
+      }
+    }
+
+    return wholeMinutesByKey;
+  } catch (error) {
+    console.error('Could not load listening history from local storage', error);
+    return {};
+  }
+}
+
+function saveListeningMinutes() {
+  try {
+    localStorage.setItem(LISTENING_STORAGE_KEY, JSON.stringify(listenedMinutesByKey));
+  } catch (error) {
+    console.error('Could not save listening history to local storage', error);
+  }
+}
+
+function formatListeningDuration(totalMinutes) {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = Math.floor(totalMinutes % 60);
+  return `${hours} hrs ${minutes} mins`;
+}
+
+function updateListeningDuration() {
+  if (!listeningSession) return;
+
+  const elapsedMs = listeningSession.remainderMs
+    + performance.now()
+    - listeningSession.startedAt;
+  const completedMinutes = Math.floor(elapsedMs / LISTENING_UPDATE_INTERVAL_MS);
+  const totalMinutes = listeningSession.baseMinutes + completedMinutes;
+  listeningRemainderMsByKey.set(
+    listeningSession.key,
+    elapsedMs % LISTENING_UPDATE_INTERVAL_MS,
+  );
+
+  if (activeTile?.dataset.key === listeningSession.key) {
+    activeTile.querySelector('.tile-duration').textContent =
+      formatListeningDuration(totalMinutes);
+  }
+
+  if (totalMinutes > (listenedMinutesByKey[listeningSession.key] ?? 0)) {
+    listenedMinutesByKey[listeningSession.key] = totalMinutes;
+    saveListeningMinutes();
+  }
+}
+
+function startListening(key) {
+  listeningSession = {
+    key,
+    baseMinutes: listenedMinutesByKey[key] ?? 0,
+    remainderMs: listeningRemainderMsByKey.get(key) ?? 0,
+    startedAt: performance.now(),
+  };
+  updateListeningDuration();
+  listeningUpdateTimer = setInterval(
+    updateListeningDuration,
+    LISTENING_UPDATE_INTERVAL_MS,
+  );
+}
+
+function stopListening() {
+  if (listeningUpdateTimer !== null) {
+    clearInterval(listeningUpdateTimer);
+    listeningUpdateTimer = null;
+  }
+  updateListeningDuration();
+  listeningSession = null;
+}
+
+window.addEventListener('pagehide', stopListening);
 
 loadTiles();
