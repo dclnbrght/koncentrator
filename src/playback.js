@@ -41,6 +41,11 @@ export function createPlaybackController(onError = () => {}) {
 
       playback.fadeDuration = Math.min(crossfadeSeconds, playback.buffer.duration / 4);
       playback.nextStartTime = audioContext.currentTime + 0.05;
+      if (playback.fadeDuration === 0) {
+        startSeamlessLoop(playback);
+        return;
+      }
+
       scheduleLoopSources(playback);
       playback.timer = setInterval(() => {
         try {
@@ -92,6 +97,26 @@ export function createPlaybackController(onError = () => {}) {
     }
 
     return audioBuffers.get(audioPath);
+  }
+
+  function startSeamlessLoop(playback) {
+    const source = audioContext.createBufferSource();
+    const gain = audioContext.createGain();
+
+    source.buffer = playback.buffer;
+    source.loop = true;
+    source.connect(gain);
+    gain.connect(audioContext.destination);
+
+    const scheduledSource = { source, gain };
+    playback.sources.add(scheduledSource);
+    source.onended = () => {
+      source.disconnect();
+      gain.disconnect();
+      playback.sources.delete(scheduledSource);
+    };
+
+    source.start(playback.nextStartTime);
   }
 
   function scheduleLoopSources(playback) {

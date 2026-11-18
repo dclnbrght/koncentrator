@@ -4,8 +4,6 @@ Koncentrator is a lightweight web app for playing ambient audio, designed to imp
 
 ## Configure audio tiles
 
-Note: It's best to use audio files where the waveform is mathematically wrapped. 
-
 Edit [`src/config.json`](src/config.json). 
 
 Each entry describes one tile:
@@ -17,4 +15,6 @@ Each entry describes one tile:
 | `audio` | Audio file in the `audio/` folder |
 | `image` | Tile artwork in the `images/` folder |
 | `accent` | Tile accent color |
-| `crossfadeSeconds` | Crossfade duration at each loop boundary, in seconds |
+| `crossfadeSeconds` | Crossfade duration at each loop boundary, in seconds; use `0` for seamless wrapped audio |
+
+Note: For audio files with a mathematically wrapped waveform, set `crossfadeSeconds` to `0` to use a single native looping source without the crossfade scheduler.
