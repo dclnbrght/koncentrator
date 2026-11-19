@@ -34,7 +34,7 @@ button {
   align-items: start;
   justify-content: space-between;
   gap: 1.5em;
-  margin-bottom: 2.25em;
+  margin-bottom: 1.7em;
 }
 
 .eyebrow {
@@ -86,7 +86,7 @@ h1 {
 }
 
 .category-title {
-  margin: 0 0 0.875em 0.3em;
+  margin: 0 0 0.9em 0.28em;
   color: #aeb6c2;
   font-size: 0.82rem;
   font-weight: 700;
@@ -157,7 +157,7 @@ h1 {
 .tile-duration {
   position: absolute;
   top: 0.875em;
-  left: 1.2em;
+  left: 1.3em;
   color: rgba(241, 241, 227, 0.6);
   font-size: 0.75rem;
   font-weight: 600;
