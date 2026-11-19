@@ -7,6 +7,7 @@ const status = document.querySelector('.status');
 const statusText = document.querySelector('#statusText');
 
 let activeTile = null;
+let isPlaybackPaused = false;
 let playbackRequest = 0;
 let listeningSession = null;
 let listeningUpdateTimer = null;
@@ -98,6 +99,8 @@ async function toggleTile(tile) {
     await playback.play(tile.dataset.audio, configuredFade);
     if (request !== playbackRequest) return;
     startListening(tile.dataset.key);
+    setMediaMetadata(tile);
+    setMediaPlaybackState('playing');
     statusText.textContent = `Playing ${title}`;
   } catch (error) {
     if (request !== playbackRequest) return;
@@ -112,6 +115,7 @@ function stopActiveTile() {
   stopListening();
   playbackRequest++;
   playback.stop();
+  isPlaybackPaused = false;
 
   if (activeTile) {
     activeTile.setAttribute('aria-pressed', 'false');
@@ -119,9 +123,99 @@ function stopActiveTile() {
     activeTile.setAttribute('aria-label', `Play ${title}`);
   }
   activeTile = null;
-  activeTile = null;
   status.classList.remove('is-playing');
   statusText.textContent = 'Nothing playing';
+  clearMediaSession();
+}
+
+async function pauseActiveTile() {
+  if (!activeTile || isPlaybackPaused) return;
+
+  const tile = activeTile;
+  const title = tile.querySelector('.tile-name').textContent;
+  const request = playbackRequest;
+
+  try {
+    await playback.pause();
+    if (activeTile !== tile || request !== playbackRequest) return;
+
+    stopListening();
+    isPlaybackPaused = true;
+    statusText.textContent = `Paused ${title}`;
+    setMediaPlaybackState('paused');
+  } catch (error) {
+    console.error(`Could not pause ${title}`, error);
+  }
+}
+
+async function resumeActiveTile() {
+  if (!activeTile || !isPlaybackPaused) return;
+
+  const tile = activeTile;
+  const title = tile.querySelector('.tile-name').textContent;
+  const request = playbackRequest;
+
+  try {
+    await playback.resume();
+    if (activeTile !== tile || request !== playbackRequest) return;
+
+    isPlaybackPaused = false;
+    startListening(tile.dataset.key);
+    statusText.textContent = `Playing ${title}`;
+    setMediaPlaybackState('playing');
+  } catch (error) {
+    console.error(`Could not resume ${title}`, error);
+  }
+}
+
+function configureMediaSession() {
+  if (!('mediaSession' in navigator)) return;
+
+  for (const [action, handler] of [
+    ['play', resumeActiveTile],
+    ['pause', pauseActiveTile],
+    ['stop', stopActiveTile],
+  ]) {
+    try {
+      navigator.mediaSession.setActionHandler(action, handler);
+    } catch (error) {
+      console.warn(`Media session action is not supported: ${action}`, error);
+    }
+  }
+}
+
+function setMediaMetadata(tile) {
+  if (!('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') return;
+
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: tile.querySelector('.tile-name').textContent,
+    artist: 'Koncentrator',
+    album: tile.closest('.category')?.querySelector('.category-title')?.textContent ?? '',
+    artwork: [
+      {
+        src: new URL(tile.querySelector('.tile-image').getAttribute('src'), document.baseURI).href,
+        type: 'image/svg+xml',
+      },
+      {
+        src: new URL('icons/icon-512.png', document.baseURI).href,
+        sizes: '512x512',
+        type: 'image/png',
+      },
+    ],
+  });
+}
+
+function setMediaPlaybackState(state) {
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.playbackState = state;
+  }
+}
+
+function clearMediaSession() {
+  if (!('mediaSession' in navigator)) return;
+
+  navigator.mediaSession.metadata = null;
+  setMediaPlaybackState('none');
 }
 
 function loadListeningMinutes() {
@@ -221,6 +315,7 @@ function stopListening() {
 }
 
 window.addEventListener('pagehide', stopListening);
+configureMediaSession();
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./service-worker.js')

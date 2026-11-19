@@ -66,6 +66,23 @@ export function createPlaybackController(onError = () => {}) {
     if (activePlayback) stopPlayback(activePlayback);
   }
 
+  async function pause() {
+    const playback = activePlayback;
+    if (playback && audioContext?.state === 'running') {
+      await audioContext.suspend();
+      if (activePlayback !== playback && audioContext.state === 'suspended') {
+        await audioContext.resume();
+      }
+    }
+  }
+
+  async function resume() {
+    const playback = activePlayback;
+    if (playback && audioContext?.state === 'suspended') {
+      await audioContext.resume();
+    }
+  }
+
   function stopPlayback(playback) {
     if (activePlayback === playback) activePlayback = null;
 
@@ -164,5 +181,5 @@ export function createPlaybackController(onError = () => {}) {
     }
   }
 
-  return { play, stop };
+  return { play, pause, resume, stop };
 }
