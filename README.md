@@ -23,4 +23,4 @@ Note: For audio files with a mathematically wrapped waveform, set `crossfadeSeco
 
 ## Install and use offline
 
-Koncentrator can be installed from browsers that support progressive web apps. 
+Koncentrator can be installed from browsers that support progressive web apps. When supported by the browser, the Media Session API exposes the playing sound and play, pause, and stop controls in the device's media notifications and lock screen.
