@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'koncentrator-static-';
-const CACHE_NAME = `${CACHE_PREFIX}v1`;
+const CACHE_NAME = `${CACHE_PREFIX}v2`;
 const SHELL_FILES = [
   './',
   './index.html',
@@ -12,9 +12,10 @@ const SHELL_FILES = [
   './icons/icon-192.png',
   './icons/icon-512.png',
 ];
+const SHELL_URLS = new Set(SHELL_FILES.map(resolveScopedUrl).map((url) => url.href));
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(cacheApplication());
+  event.waitUntil(installApplication());
 });
 
 self.addEventListener('activate', (event) => {
@@ -42,6 +43,11 @@ async function cacheApplication() {
   await cache.addAll([...new Set(assetUrls)]);
 }
 
+async function installApplication() {
+  await cacheApplication();
+  await self.skipWaiting();
+}
+
 async function activateApplication() {
   const cacheNames = await caches.keys();
   await Promise.all(
@@ -53,18 +59,34 @@ async function activateApplication() {
 }
 
 async function serveFromCache(request) {
-  const cachedResponse = await caches.match(request);
-  if (cachedResponse) return cachedResponse;
+  const cache = await caches.open(CACHE_NAME);
+  const isApplicationShell = SHELL_URLS.has(request.url);
+  const cachedResponse = await cache.match(request);
+  if (!isApplicationShell && cachedResponse) return cachedResponse;
 
+  let response;
   try {
-    return await fetch(request);
+    response = await fetch(
+      isApplicationShell ? new Request(request, { cache: 'no-cache' }) : request,
+    );
   } catch (error) {
+    if (cachedResponse) return cachedResponse;
+
     if (request.mode === 'navigate') {
-      const cachedIndex = await caches.match(resolveScopedUrl('./'));
+      const cachedIndex = await cache.match(resolveScopedUrl('./'));
       if (cachedIndex) return cachedIndex;
     }
     throw error;
   }
+
+  if (response.ok && response.type === 'basic') {
+    try {
+      await cache.put(request, response.clone());
+    } catch (error) {
+      console.error(`Could not update cached resource: ${request.url}`, error);
+    }
+  }
+  return response;
 }
 
 function resolveScopedUrl(path) {

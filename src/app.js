@@ -318,6 +318,14 @@ window.addEventListener('pagehide', stopListening);
 configureMediaSession();
 
 if ('serviceWorker' in navigator) {
+  let reloadWhenUpdatedWorkerTakesControl = Boolean(navigator.serviceWorker.controller);
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloadWhenUpdatedWorkerTakesControl) {
+      reloadWhenUpdatedWorkerTakesControl = false;
+      window.location.reload();
+    }
+  });
+
   navigator.serviceWorker.register('./service-worker.js')
     .catch((error) => console.error('Could not register service worker', error));
 }
