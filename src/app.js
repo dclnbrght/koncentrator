@@ -25,6 +25,9 @@ const playback = createPlaybackController((error, audioPath) => {
   const title = activeTile.querySelector('.tile-name').textContent;
   stopListening();
   isPlaybackPaused = true;
+  activeTile.setAttribute('aria-pressed', 'false');
+  activeTile.setAttribute('aria-label', `Resume ${title}`);
+  status.classList.remove('is-playing');
   statusText.textContent = `Paused ${title}`;
   setMediaPlaybackState('paused');
 });
@@ -84,7 +87,11 @@ function createTile(tile) {
 
 async function toggleTile(tile) {
   if (activeTile === tile) {
-    stopActiveTile();
+    if (isPlaybackPaused) {
+      await resumeActiveTile();
+    } else {
+      stopActiveTile();
+    }
     return;
   }
 
@@ -149,6 +156,9 @@ async function pauseActiveTile() {
 
     stopListening();
     isPlaybackPaused = true;
+    tile.setAttribute('aria-pressed', 'false');
+    tile.setAttribute('aria-label', `Resume ${title}`);
+    status.classList.remove('is-playing');
     statusText.textContent = `Paused ${title}`;
     setMediaPlaybackState('paused');
   } catch (error) {
@@ -168,6 +178,9 @@ async function resumeActiveTile() {
     if (activeTile !== tile || request !== playbackRequest) return;
 
     isPlaybackPaused = false;
+    tile.setAttribute('aria-pressed', 'true');
+    tile.setAttribute('aria-label', `Stop ${title}`);
+    status.classList.add('is-playing');
     startListening(tile.dataset.key);
     statusText.textContent = `Playing ${title}`;
     setMediaPlaybackState('playing');
