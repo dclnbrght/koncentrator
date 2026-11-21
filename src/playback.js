@@ -9,7 +9,7 @@ const FADE_OUT_CURVE = Float32Array.from(
   (_, index) => Math.cos((index / (FADE_CURVE_STEPS - 1)) * Math.PI / 2),
 );
 
-export function createPlaybackController(onError = () => {}) {
+export function createPlaybackController(onError = () => {}, onPause = () => {}) {
   let audioContext = null;
   let activePlayback = null;
 
@@ -20,9 +20,10 @@ export function createPlaybackController(onError = () => {}) {
       audioPath,
       sources: new Set(),
       timer: null,
-      nextStartAt: 0,
       nextStartDelayMs: null,
       nextPrepared: null,
+      nextBoundarySource: null,
+      nextBoundaryTime: 0,
       isPaused: false,
       stopped: false,
     };
@@ -63,22 +64,7 @@ export function createPlaybackController(onError = () => {}) {
     const playback = activePlayback;
     if (!playback || playback.isPaused) return;
 
-    playback.isPaused = true;
-    if (playback.timer !== null) {
-      clearTimeout(playback.timer);
-      playback.timer = null;
-      playback.nextStartDelayMs = Math.max(0, playback.nextStartAt - performance.now());
-    }
-
-    for (const scheduledSource of playback.sources) {
-      if (scheduledSource.started) scheduledSource.mediaElement.pause();
-    }
-    if (audioContext?.state === 'running') {
-      await audioContext.suspend();
-      if (activePlayback !== playback && audioContext.state === 'suspended') {
-        await audioContext.resume();
-      }
-    }
+    await pausePlayback(playback);
   }
 
   async function resume() {
@@ -94,7 +80,53 @@ export function createPlaybackController(onError = () => {}) {
     if (activePlayback !== playback) return;
 
     playback.isPaused = false;
-    if (playback.nextPrepared) scheduleNextElement(playback, playback.nextStartDelayMs ?? 0);
+    if (playback.nextPrepared) {
+      scheduleNextElement(playback, getNextStartDelay(playback));
+    }
+  }
+
+  async function pausePlayback(playback) {
+    playback.isPaused = true;
+    clearTimeout(playback.timer);
+    playback.timer = null;
+    playback.nextStartDelayMs = getNextStartDelay(playback);
+
+    for (const scheduledSource of playback.sources) {
+      if (scheduledSource.started) scheduledSource.mediaElement.pause();
+    }
+    if (audioContext?.state === 'running') {
+      await audioContext.suspend();
+      if (activePlayback !== playback && audioContext.state === 'suspended') {
+        await audioContext.resume();
+      }
+    }
+  }
+
+  function handleMediaPause(playback, scheduledSource) {
+    if (
+      playback !== activePlayback
+      || playback.isPaused
+      || playback.stopped
+      || scheduledSource.isBeingReleased
+      || scheduledSource.mediaElement.ended
+    ) return;
+
+    void pausePlayback(playback)
+      .then(() => {
+        if (activePlayback === playback) onPause();
+      })
+      .catch((error) => {
+        if (activePlayback !== playback) return;
+        onError(error, playback.audioPath);
+        console.error(`Could not pause audio: ${playback.audioPath}`, error);
+      });
+  }
+
+  function getNextStartDelay(playback) {
+    if (!playback.nextBoundarySource) return playback.nextStartDelayMs ?? 0;
+    const remainingSeconds = playback.nextBoundaryTime
+      - playback.nextBoundarySource.mediaElement.currentTime;
+    return Math.max(0, remainingSeconds * 1000);
   }
 
   function stopPlayback(playback) {
@@ -148,9 +180,8 @@ export function createPlaybackController(onError = () => {}) {
         throw new Error(`Invalid audio duration for ${playback.audioPath}`);
       }
       scheduledSource.duration = mediaElement.duration;
-      mediaElement.addEventListener('ended', () => releaseMediaElement(playback, scheduledSource), {
-        once: true,
-      });
+      mediaElement.addEventListener('pause', () => handleMediaPause(playback, scheduledSource));
+      mediaElement.addEventListener('ended', () => releaseMediaElement(playback, scheduledSource), { once: true });
       return scheduledSource;
     } catch (error) {
       releaseMediaElement(playback, scheduledSource);
@@ -160,24 +191,26 @@ export function createPlaybackController(onError = () => {}) {
 
   async function startCrossfadedElement(playback, scheduledSource, fadeDuration) {
     await startMediaElement(playback, scheduledSource, fadeDuration);
-    if (activePlayback !== playback) return;
+    if (activePlayback !== playback || !scheduledSource.started) return;
 
-    void prepareNextElement(
-      playback,
-      fadeDuration,
-      (scheduledSource.duration - fadeDuration) * 1000,
-    );
+    playback.nextBoundarySource = scheduledSource;
+    playback.nextBoundaryTime = scheduledSource.duration - fadeDuration;
+    void prepareNextElement(playback, fadeDuration);
   }
 
   async function startMediaElement(playback, scheduledSource, fadeDuration) {
     const { mediaElement, gain } = scheduledSource;
+    scheduledSource.started = true;
     await mediaElement.play();
     if (activePlayback !== playback) {
       releaseMediaElement(playback, scheduledSource);
       return;
     }
+    if (playback.isPaused) {
+      mediaElement.pause();
+      return;
+    }
 
-    scheduledSource.started = true;
     const startTime = audioContext.currentTime;
     if (fadeDuration > 0) {
       const fadeOutStart = startTime + scheduledSource.duration - fadeDuration;
@@ -190,8 +223,7 @@ export function createPlaybackController(onError = () => {}) {
     }
   }
 
-  async function prepareNextElement(playback, fadeDuration, delayMs) {
-    const prepareStartedAt = performance.now();
+  async function prepareNextElement(playback, fadeDuration) {
     try {
       const scheduledSource = await createMediaElement(playback);
       if (activePlayback !== playback) {
@@ -200,7 +232,7 @@ export function createPlaybackController(onError = () => {}) {
       }
 
       playback.nextPrepared = scheduledSource;
-      playback.nextStartDelayMs = Math.max(0, delayMs - (performance.now() - prepareStartedAt));
+      playback.nextStartDelayMs = getNextStartDelay(playback);
       playback.nextFadeDuration = Math.min(fadeDuration, scheduledSource.duration / 4);
       if (!playback.isPaused) {
         scheduleNextElement(playback, playback.nextStartDelayMs);
@@ -216,7 +248,6 @@ export function createPlaybackController(onError = () => {}) {
   function scheduleNextElement(playback, delayMs) {
     clearTimeout(playback.timer);
     playback.nextStartDelayMs = delayMs;
-    playback.nextStartAt = performance.now() + delayMs;
     playback.timer = setTimeout(() => {
       playback.timer = null;
       const scheduledSource = playback.nextPrepared;
@@ -236,6 +267,7 @@ export function createPlaybackController(onError = () => {}) {
 
   function releaseMediaElement(playback, scheduledSource) {
     if (!playback.sources.has(scheduledSource)) return;
+    scheduledSource.isBeingReleased = true;
     scheduledSource.mediaElement.pause();
     scheduledSource.mediaElement.removeAttribute('src');
     scheduledSource.source.disconnect();

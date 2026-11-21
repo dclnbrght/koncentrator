@@ -19,9 +19,9 @@ Each entry defines a sound tile:
 | `audio` | Audio file path, relative to `src/` |
 | `image` | Tile artwork path, relative to `src/` |
 | `accent` | Tile accent color |
-| `crossfadeSeconds` | Crossfade duration at each loop boundary, in seconds; use `0` when the audio is already seamless |
+| `crossfadeSeconds` | Crossfade duration at each loop boundary, in seconds; use `0` for a seamless loop |
 
-For example, `0.5` crossfades the last half-second of a sound into its next loop. Use `0` for audio with a mathematically wrapped waveform, prepared to loop without an audible boundary.
+For example, `0.5` crossfades the last half-second of a sound into its next loop. Use `0` for a mathematically wrapped waveform that loops without an audible boundary.
 
 ## Install and use offline
 

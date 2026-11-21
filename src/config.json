@@ -6,7 +6,7 @@
     "audio": "audio/brown-noise.wav",
     "image": "images/brown-noise.svg",
     "accent": "#d97745",
-    "crossfadeSeconds": 0.5
+    "crossfadeSeconds": 0.2
   },
   {
     "key": "amber-noise",
@@ -24,7 +24,7 @@
     "audio": "audio/pink-noise.wav",
     "image": "images/pink-noise.svg",
     "accent": "#d65b88",
-    "crossfadeSeconds": 0.5
+    "crossfadeSeconds": 0
   },
   {
     "key": "breeze",

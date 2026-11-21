@@ -19,6 +19,14 @@ const playback = createPlaybackController((error, audioPath) => {
   stopActiveTile();
   statusText.textContent = 'Playback unavailable';
   console.error(`Could not play ${audioPath}`, error);
+}, () => {
+  if (!activeTile || isPlaybackPaused) return;
+
+  const title = activeTile.querySelector('.tile-name').textContent;
+  stopListening();
+  isPlaybackPaused = true;
+  statusText.textContent = `Paused ${title}`;
+  setMediaPlaybackState('paused');
 });
 
 async function loadTiles() {
