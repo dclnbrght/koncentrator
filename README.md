@@ -1,6 +1,6 @@
 # Koncentrator
 
-Koncentrator is a lightweight web app for playing ambient audio, designed to improve focus. Browse sound tiles grouped by category, then start or stop a sound with a click. Only one sound plays at a time, and each clip loops indefinitely. There is a configurable equal-power crossfade for a smoother transition between loops.
+Koncentrator is an ambient sound player for focus. Choose a sound tile to play it, and choose it again to stop. Only one sound plays at a time. Sounds loop continuously, with optional crossfades between loops.
 
 Live version here: [Koncentrator](https://dclnbrght.github.io/koncentrator/)
 
@@ -8,21 +8,23 @@ Live version here: [Koncentrator](https://dclnbrght.github.io/koncentrator/)
 
 ## Configure audio tiles
 
-Edit [`src/config.json`](src/config.json). 
+Edit [`src/config.json`](src/config.json).
 
-Each entry describes one tile:
+Each entry defines a sound tile:
 
 | Property | Description |
 | --- | --- |
 | `title` | Tile label |
 | `category` | Category heading used to group the tile |
-| `audio` | Audio file in the `audio/` folder |
-| `image` | Tile artwork in the `images/` folder |
+| `audio` | Audio file path, relative to `src/` |
+| `image` | Tile artwork path, relative to `src/` |
 | `accent` | Tile accent color |
-| `crossfadeSeconds` | Crossfade duration at each loop boundary, in seconds; use `0` for seamless wrapped audio |
+| `crossfadeSeconds` | Crossfade duration at each loop boundary, in seconds; use `0` when the audio is already seamless |
 
-Note: For audio files with a mathematically wrapped waveform, set `crossfadeSeconds` to `0` to use a single native looping source without the crossfade scheduler.
+For example, `0.5` crossfades the last half-second of a sound into its next loop. Use `0` for audio with a mathematically wrapped waveform, prepared to loop without an audible boundary.
 
 ## Install and use offline
 
-Koncentrator can be installed from browsers that support progressive web apps. When supported by the browser, the Media Session API exposes the playing sound and play, pause, and stop controls in the device's media notifications and lock screen.
+Serve the app over HTTPS (or localhost during development). After the service worker installs and caches the app and its configured sounds and artwork, the app is available offline. You can install it on devices using browsers that support progressive web apps.
+
+Browsers and operating systems that support media controls can show the current sound and provide play, pause, and stop actions.

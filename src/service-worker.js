@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'koncentrator-static-';
-const CACHE_NAME = `${CACHE_PREFIX}v2`;
+const CACHE_NAME = `${CACHE_PREFIX}v3`;
 const SHELL_FILES = [
   './',
   './index.html',
@@ -61,8 +61,11 @@ async function activateApplication() {
 async function serveFromCache(request) {
   const cache = await caches.open(CACHE_NAME);
   const isApplicationShell = SHELL_URLS.has(request.url);
-  const cachedResponse = await cache.match(request);
-  if (!isApplicationShell && cachedResponse) return cachedResponse;
+  const rangeHeader = request.headers.get('range');
+  const cachedResponse = await cache.match(rangeHeader ? request.url : request);
+  if (!isApplicationShell && cachedResponse) {
+    return rangeHeader ? createRangeResponse(cachedResponse, rangeHeader) : cachedResponse;
+  }
 
   let response;
   try {
@@ -79,7 +82,7 @@ async function serveFromCache(request) {
     throw error;
   }
 
-  if (response.ok && response.type === 'basic') {
+  if (!rangeHeader && response.ok && response.status === 200 && response.type === 'basic') {
     try {
       await cache.put(request, response.clone());
     } catch (error) {
@@ -87,6 +90,49 @@ async function serveFromCache(request) {
     }
   }
   return response;
+}
+
+async function createRangeResponse(response, rangeHeader) {
+  const match = /^bytes=(\d*)-(\d*)$/.exec(rangeHeader);
+  if (!match) return response;
+
+  const data = await response.arrayBuffer();
+  const size = data.byteLength;
+  const requestedStart = match[1] === '' ? null : Number(match[1]);
+  const requestedEnd = match[2] === '' ? null : Number(match[2]);
+  if (
+    (requestedStart !== null && !Number.isSafeInteger(requestedStart))
+    || (requestedEnd !== null && !Number.isSafeInteger(requestedEnd))
+    || (requestedStart === null && (!requestedEnd || requestedEnd <= 0))
+  ) {
+    return new Response(null, {
+      status: 416,
+      headers: { 'Content-Range': `bytes */${size}` },
+    });
+  }
+  const start = requestedStart ?? Math.max(0, size - requestedEnd);
+  const end = requestedStart === null
+    ? size - 1
+    : Math.min(requestedEnd ?? size - 1, size - 1);
+
+  if (!size || start >= size || start > end) {
+    return new Response(null, {
+      status: 416,
+      headers: { 'Content-Range': `bytes */${size}` },
+    });
+  }
+
+  const headers = new Headers(response.headers);
+  headers.set('Accept-Ranges', 'bytes');
+  headers.set('Content-Range', `bytes ${start}-${end}/${size}`);
+  headers.set('Content-Length', String(end - start + 1));
+  headers.delete('Content-Encoding');
+
+  return new Response(data.slice(start, end + 1), {
+    status: 206,
+    statusText: 'Partial Content',
+    headers,
+  });
 }
 
 function resolveScopedUrl(path) {

@@ -187,22 +187,26 @@ function configureMediaSession() {
 function setMediaMetadata(tile) {
   if (!('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') return;
 
-  navigator.mediaSession.metadata = new MediaMetadata({
-    title: tile.querySelector('.tile-name').textContent,
-    artist: 'Koncentrator',
-    album: tile.closest('.category')?.querySelector('.category-title')?.textContent ?? '',
-    artwork: [
-      {
-        src: new URL(tile.querySelector('.tile-image').getAttribute('src'), document.baseURI).href,
-        type: 'image/svg+xml',
-      },
-      {
-        src: new URL('icons/icon-512.png', document.baseURI).href,
-        sizes: '512x512',
-        type: 'image/png',
-      },
-    ],
-  });
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: tile.querySelector('.tile-name').textContent,
+      artist: 'Koncentrator',
+      album: tile.closest('.category')?.querySelector('.category-title')?.textContent ?? '',
+      artwork: [
+        {
+          src: new URL(tile.querySelector('.tile-image').getAttribute('src'), document.baseURI).href,
+          type: 'image/svg+xml',
+        },
+        {
+          src: new URL('icons/icon-512.png', document.baseURI).href,
+          sizes: '512x512',
+          type: 'image/png',
+        },
+      ],
+    });
+  } catch (error) {
+    console.error('Could not set media session metadata', error);
+  }
 }
 
 function setMediaPlaybackState(state) {

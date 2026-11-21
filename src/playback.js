@@ -1,5 +1,3 @@
-const SCHEDULER_INTERVAL_MS = 250;
-const SCHEDULER_AHEAD_SECONDS = 1;
 const FADE_CURVE_STEPS = 64;
 
 const FADE_IN_CURVE = Float32Array.from(
@@ -14,7 +12,6 @@ const FADE_OUT_CURVE = Float32Array.from(
 export function createPlaybackController(onError = () => {}) {
   let audioContext = null;
   let activePlayback = null;
-  const audioBuffers = new Map();
 
   async function play(audioPath, crossfadeSeconds) {
     stop();
@@ -23,39 +20,35 @@ export function createPlaybackController(onError = () => {}) {
       audioPath,
       sources: new Set(),
       timer: null,
-      nextStartTime: 0,
-      buffer: null,
-      fadeDuration: 0,
+      nextStartAt: 0,
+      nextStartDelayMs: null,
+      nextPrepared: null,
+      isPaused: false,
+      stopped: false,
     };
     activePlayback = playback;
 
     try {
       audioContext ??= new AudioContext();
       await audioContext.resume();
-      playback.buffer = await loadAudioBuffer(audioPath);
-
       if (activePlayback !== playback) return;
       if (!Number.isFinite(crossfadeSeconds) || crossfadeSeconds < 0) {
         throw new Error(`Invalid crossfade duration for ${audioPath}`);
       }
 
-      playback.fadeDuration = Math.min(crossfadeSeconds, playback.buffer.duration / 4);
-      playback.nextStartTime = audioContext.currentTime + 0.05;
-      if (playback.fadeDuration === 0) {
-        startSeamlessLoop(playback);
+      if (crossfadeSeconds === 0) {
+        await startMediaElementLoop(playback);
         return;
       }
 
-      scheduleLoopSources(playback);
-      playback.timer = setInterval(() => {
-        try {
-          scheduleLoopSources(playback);
-        } catch (error) {
-          stopPlayback(playback);
-          onError(error, audioPath);
-          console.error(`Could not schedule audio: ${audioPath}`, error);
-        }
-      }, SCHEDULER_INTERVAL_MS);
+      const firstElement = await createMediaElement(playback);
+      if (activePlayback !== playback) {
+        releaseMediaElement(playback, firstElement);
+        return;
+      }
+
+      const fadeDuration = Math.min(crossfadeSeconds, firstElement.duration / 4);
+      await startCrossfadedElement(playback, firstElement, fadeDuration);
     } catch (error) {
       stopPlayback(playback);
       throw error;
@@ -68,7 +61,19 @@ export function createPlaybackController(onError = () => {}) {
 
   async function pause() {
     const playback = activePlayback;
-    if (playback && audioContext?.state === 'running') {
+    if (!playback || playback.isPaused) return;
+
+    playback.isPaused = true;
+    if (playback.timer !== null) {
+      clearTimeout(playback.timer);
+      playback.timer = null;
+      playback.nextStartDelayMs = Math.max(0, playback.nextStartAt - performance.now());
+    }
+
+    for (const scheduledSource of playback.sources) {
+      if (scheduledSource.started) scheduledSource.mediaElement.pause();
+    }
+    if (audioContext?.state === 'running') {
       await audioContext.suspend();
       if (activePlayback !== playback && audioContext.state === 'suspended') {
         await audioContext.resume();
@@ -78,107 +83,164 @@ export function createPlaybackController(onError = () => {}) {
 
   async function resume() {
     const playback = activePlayback;
-    if (playback && audioContext?.state === 'suspended') {
-      await audioContext.resume();
-    }
+    if (!playback || !playback.isPaused) return;
+
+    if (audioContext?.state === 'suspended') await audioContext.resume();
+    await Promise.all(
+      [...playback.sources]
+        .filter((scheduledSource) => scheduledSource.started)
+        .map((scheduledSource) => scheduledSource.mediaElement.play()),
+    );
+    if (activePlayback !== playback) return;
+
+    playback.isPaused = false;
+    if (playback.nextPrepared) scheduleNextElement(playback, playback.nextStartDelayMs ?? 0);
   }
 
   function stopPlayback(playback) {
+    if (playback.stopped) return;
+    playback.stopped = true;
     if (activePlayback === playback) activePlayback = null;
 
-    clearInterval(playback.timer);
-    if (!audioContext) return;
-
-    const stopTime = audioContext.currentTime;
-    for (const { source, gain } of playback.sources) {
-      gain.gain.cancelScheduledValues(stopTime);
-      gain.gain.setTargetAtTime(0, stopTime, 0.015);
-      source.stop(stopTime + 0.06);
+    clearTimeout(playback.timer);
+    for (const scheduledSource of playback.sources) {
+      releaseMediaElement(playback, scheduledSource);
     }
+    playback.nextPrepared = null;
   }
 
-  async function loadAudioBuffer(audioPath) {
-    if (!audioBuffers.has(audioPath)) {
-      const bufferPromise = fetch(audioPath)
-        .then((response) => {
-          if (!response.ok) throw new Error(`Could not load audio file: ${audioPath}`);
-          return response.arrayBuffer();
-        })
-        .then((data) => audioContext.decodeAudioData(data))
-        .catch((error) => {
-          audioBuffers.delete(audioPath);
-          throw error;
-        });
-
-      audioBuffers.set(audioPath, bufferPromise);
+  async function startMediaElementLoop(playback) {
+    const scheduledSource = await createMediaElement(playback);
+    if (activePlayback !== playback) {
+      releaseMediaElement(playback, scheduledSource);
+      return;
     }
 
-    return audioBuffers.get(audioPath);
+    scheduledSource.mediaElement.loop = true;
+    await startMediaElement(playback, scheduledSource, 0);
   }
 
-  function startSeamlessLoop(playback) {
-    const source = audioContext.createBufferSource();
+  async function createMediaElement(playback) {
+    const mediaElement = new Audio();
+    mediaElement.preload = 'auto';
+    const source = audioContext.createMediaElementSource(mediaElement);
     const gain = audioContext.createGain();
-
-    source.buffer = playback.buffer;
-    source.loop = true;
+    gain.gain.value = 0;
     source.connect(gain);
     gain.connect(audioContext.destination);
 
-    const scheduledSource = { source, gain };
+    const scheduledSource = { source, gain, mediaElement, duration: 0, started: false };
     playback.sources.add(scheduledSource);
-    source.onended = () => {
-      source.disconnect();
-      gain.disconnect();
-      playback.sources.delete(scheduledSource);
-    };
+    mediaElement.src = playback.audioPath;
 
-    source.start(playback.nextStartTime);
+    try {
+      if (mediaElement.readyState < HTMLMediaElement.HAVE_METADATA) {
+        await new Promise((resolve, reject) => {
+          mediaElement.addEventListener('loadedmetadata', resolve, { once: true });
+          mediaElement.addEventListener(
+            'error',
+            () => reject(new Error(`Could not load audio file: ${playback.audioPath}`)),
+            { once: true },
+          );
+        });
+      }
+      if (!Number.isFinite(mediaElement.duration) || mediaElement.duration <= 0) {
+        throw new Error(`Invalid audio duration for ${playback.audioPath}`);
+      }
+      scheduledSource.duration = mediaElement.duration;
+      mediaElement.addEventListener('ended', () => releaseMediaElement(playback, scheduledSource), {
+        once: true,
+      });
+      return scheduledSource;
+    } catch (error) {
+      releaseMediaElement(playback, scheduledSource);
+      throw error;
+    }
   }
 
-  function scheduleLoopSources(playback) {
-    const currentTime = audioContext.currentTime;
-    const horizon = currentTime + SCHEDULER_AHEAD_SECONDS;
-    const loopDuration = playback.buffer.duration - playback.fadeDuration;
+  async function startCrossfadedElement(playback, scheduledSource, fadeDuration) {
+    await startMediaElement(playback, scheduledSource, fadeDuration);
+    if (activePlayback !== playback) return;
 
-    if (playback.nextStartTime < currentTime) {
-      playback.nextStartTime = currentTime + 0.05;
+    void prepareNextElement(
+      playback,
+      fadeDuration,
+      (scheduledSource.duration - fadeDuration) * 1000,
+    );
+  }
+
+  async function startMediaElement(playback, scheduledSource, fadeDuration) {
+    const { mediaElement, gain } = scheduledSource;
+    await mediaElement.play();
+    if (activePlayback !== playback) {
+      releaseMediaElement(playback, scheduledSource);
+      return;
     }
 
-    while (playback.nextStartTime < horizon) {
-      const startTime = playback.nextStartTime;
-      const source = audioContext.createBufferSource();
-      const gain = audioContext.createGain();
+    scheduledSource.started = true;
+    const startTime = audioContext.currentTime;
+    if (fadeDuration > 0) {
+      const fadeOutStart = startTime + scheduledSource.duration - fadeDuration;
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.setValueCurveAtTime(FADE_IN_CURVE, startTime, fadeDuration);
+      gain.gain.setValueAtTime(1, fadeOutStart);
+      gain.gain.setValueCurveAtTime(FADE_OUT_CURVE, fadeOutStart, fadeDuration);
+    } else {
+      gain.gain.setValueAtTime(1, startTime);
+    }
+  }
 
-      source.buffer = playback.buffer;
-      source.connect(gain);
-      gain.connect(audioContext.destination);
-
-      if (playback.fadeDuration > 0) {
-        gain.gain.setValueAtTime(0, startTime);
-        gain.gain.setValueCurveAtTime(FADE_IN_CURVE, startTime, playback.fadeDuration);
-        gain.gain.setValueAtTime(1, startTime + playback.buffer.duration - playback.fadeDuration);
-        gain.gain.setValueCurveAtTime(
-          FADE_OUT_CURVE,
-          startTime + playback.buffer.duration - playback.fadeDuration,
-          playback.fadeDuration,
-        );
-      } else {
-        gain.gain.setValueAtTime(1, startTime);
+  async function prepareNextElement(playback, fadeDuration, delayMs) {
+    const prepareStartedAt = performance.now();
+    try {
+      const scheduledSource = await createMediaElement(playback);
+      if (activePlayback !== playback) {
+        releaseMediaElement(playback, scheduledSource);
+        return;
       }
 
-      const scheduledSource = { source, gain };
-      playback.sources.add(scheduledSource);
-      source.onended = () => {
-        source.disconnect();
-        gain.disconnect();
-        playback.sources.delete(scheduledSource);
-      };
-
-      source.start(startTime);
-      source.stop(startTime + playback.buffer.duration);
-      playback.nextStartTime += loopDuration;
+      playback.nextPrepared = scheduledSource;
+      playback.nextStartDelayMs = Math.max(0, delayMs - (performance.now() - prepareStartedAt));
+      playback.nextFadeDuration = Math.min(fadeDuration, scheduledSource.duration / 4);
+      if (!playback.isPaused) {
+        scheduleNextElement(playback, playback.nextStartDelayMs);
+      }
+    } catch (error) {
+      if (activePlayback !== playback) return;
+      stopPlayback(playback);
+      onError(error, playback.audioPath);
+      console.error(`Could not prepare audio: ${playback.audioPath}`, error);
     }
+  }
+
+  function scheduleNextElement(playback, delayMs) {
+    clearTimeout(playback.timer);
+    playback.nextStartDelayMs = delayMs;
+    playback.nextStartAt = performance.now() + delayMs;
+    playback.timer = setTimeout(() => {
+      playback.timer = null;
+      const scheduledSource = playback.nextPrepared;
+      playback.nextPrepared = null;
+      playback.nextStartDelayMs = null;
+      if (!scheduledSource || activePlayback !== playback) return;
+
+      startCrossfadedElement(playback, scheduledSource, playback.nextFadeDuration)
+        .catch((error) => {
+          if (activePlayback !== playback) return;
+          stopPlayback(playback);
+          onError(error, playback.audioPath);
+          console.error(`Could not play audio: ${playback.audioPath}`, error);
+        });
+    }, delayMs);
+  }
+
+  function releaseMediaElement(playback, scheduledSource) {
+    if (!playback.sources.has(scheduledSource)) return;
+    scheduledSource.mediaElement.pause();
+    scheduledSource.mediaElement.removeAttribute('src');
+    scheduledSource.source.disconnect();
+    scheduledSource.gain.disconnect();
+    playback.sources.delete(scheduledSource);
   }
 
   return { play, pause, resume, stop };
