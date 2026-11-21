@@ -6,7 +6,7 @@
     "audio": "audio/brown-noise.wav",
     "image": "images/brown-noise.svg",
     "accent": "#d97745",
-    "crossfadeSeconds": 0
+    "crossfadeSeconds": 0.5
   },
   {
     "key": "amber-noise",
@@ -15,7 +15,7 @@
     "audio": "audio/amber-noise.wav",
     "image": "images/amber-noise.svg",
     "accent": "#c18136",
-    "crossfadeSeconds": 0
+    "crossfadeSeconds": 0.5
   },
   {
     "key": "pink-noise",
@@ -24,7 +24,7 @@
     "audio": "audio/pink-noise.wav",
     "image": "images/pink-noise.svg",
     "accent": "#d65b88",
-    "crossfadeSeconds": 0
+    "crossfadeSeconds": 0.5
   },
   {
     "key": "breeze",
