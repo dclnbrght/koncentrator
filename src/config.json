@@ -6,7 +6,7 @@
     "audio": "audio/abyssal-noise.wav",
     "image": "images/abyssal-noise.svg",
     "accent": "#28778a",
-    "crossfadeSeconds": 0
+    "crossfadeSeconds": 0.2
   },
   {
     "key": "velvet-noise",
@@ -15,7 +15,7 @@
     "audio": "audio/velvet-noise.wav",
     "image": "images/velvet-noise.svg",
     "accent": "#9b6479",
-    "crossfadeSeconds": 0
+    "crossfadeSeconds": 0.2
   },
   {
     "key": "cavernous-noise",
@@ -24,7 +24,7 @@
     "audio": "audio/cavernous-noise.wav",
     "image": "images/cavernous-noise.svg",
     "accent": "#4c8b91",
-    "crossfadeSeconds": 0
+    "crossfadeSeconds": 0.2
   },
   {
     "key": "brown-noise",
@@ -51,7 +51,7 @@
     "audio": "audio/pink-noise.wav",
     "image": "images/pink-noise.svg",
     "accent": "#d65b88",
-    "crossfadeSeconds": 0
+    "crossfadeSeconds": 0.2
   },
   {
     "key": "blend-noise",
@@ -60,7 +60,7 @@
     "audio": "audio/blend-noise.wav",
     "image": "images/blend-noise.svg",
     "accent": "#5c8ca0",
-    "crossfadeSeconds": 0
+    "crossfadeSeconds": 0.2
   },
   {
     "key": "speech-masking-noise",
@@ -69,7 +69,7 @@
     "audio": "audio/speech-masking-noise.wav",
     "image": "images/speech-masking-noise.svg",
     "accent": "#8a7863",
-    "crossfadeSeconds": 0
+    "crossfadeSeconds": 0.2
   },
   {
     "key": "green-noise",
@@ -78,7 +78,7 @@
     "audio": "audio/green-noise.wav",
     "image": "images/green-noise.svg",
     "accent": "#68a77b",
-    "crossfadeSeconds": 0
+    "crossfadeSeconds": 0.2
   },
   {
     "key": "breeze",
