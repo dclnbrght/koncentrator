@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="cavern-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#101c2a"/>
+      <stop offset=".55" stop-color="#244654"/>
+      <stop offset="1" stop-color="#101b2a"/>
+    </linearGradient>
+    <radialGradient id="cavern-light">
+      <stop stop-color="#9ed7d0" stop-opacity=".7"/>
+      <stop offset="1" stop-color="#72bdb8" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#cavern-bg)"/>
+  <ellipse cx="405" cy="300" rx="300" ry="250" fill="url(#cavern-light)"/>
+
+  <path d="M0 0h800v105c-80 17-120 36-171 82-45 40-68 53-112 47-49-7-72-49-117-61-49-13-77 20-124 18-61-3-93-49-151-56L0 145Z" fill="#172333" opacity=".92"/>
+  <path d="M0 600h800V480c-83-19-128-47-176-92-39-37-76-55-115-43-42 14-64 61-111 73-47 13-84-17-130-16-67 1-111 50-171 62L0 478Z" fill="#111b2b" opacity=".95"/>
+
+  <g fill="none" stroke="#9ed7d0" stroke-linecap="round">
+    <path d="M0 145c122 56 196 42 286 136s166 113 264 6 160-129 250-92" stroke-width="5" opacity=".3"/>
+    <path d="M0 463c107-43 186-37 276-116s176-83 260 9 170 113 264 70" stroke-width="4" opacity=".28"/>
+    <path d="M92 250c91 20 154 67 210 128m406-135c-86 31-147 72-205 134" stroke="#d0e8dc" stroke-width="2" opacity=".36"/>
+  </g>
+
+  <g fill="none" stroke="#bce3d8" stroke-linecap="round" opacity=".34">
+    <path d="M111 178c55 19 95 43 129 78"/>
+    <path d="M678 202c-48 21-88 50-119 87"/>
+    <path d="M124 422c47-12 88-31 125-60"/>
+    <path d="M679 438c-48-15-87-35-120-63"/>
+  </g>
+
+  <g fill="#c6e7dc" opacity=".58">
+    <circle cx="185" cy="254" r="3"/><circle cx="266" cy="350" r="2"/><circle cx="552" cy="270" r="3"/>
+    <circle cx="616" cy="373" r="2"/><circle cx="398" cy="210" r="3"/><circle cx="420" cy="438" r="2"/>
+  </g>
+  <path d="M0 0h800M0 600h800" stroke="#a9d8d1" stroke-width="2" opacity=".16"/>
+</svg>

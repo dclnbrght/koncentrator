@@ -1,35 +1,35 @@
 [
   {
-    "key": "abyssal-noise",
-    "title": "Abyssal Noise",
-    "category": "Focus",
-    "audio": "audio/abyssal-noise.wav",
-    "image": "images/abyssal-noise.svg",
+    "key": "abyssal",
+    "title": "Abyssal",
+    "category": "Spatial",
+    "audio": "audio/abyssal.wav",
+    "image": "images/abyssal.svg",
     "accent": "#28778a",
     "crossfadeSeconds": 0.2
   },
   {
-    "key": "velvet-noise",
-    "title": "Velvet Noise",
-    "category": "Focus",
-    "audio": "audio/velvet-noise.wav",
-    "image": "images/velvet-noise.svg",
+    "key": "chamber",                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
+    "title": "Chamber",
+    "category": "Spatial",
+    "audio": "audio/chamber.wav",
+    "image": "images/chamber.svg",
     "accent": "#9b6479",
     "crossfadeSeconds": 0.2
   },
   {
-    "key": "cavernous-noise",
-    "title": "Cavernous Noise",
-    "category": "Focus",
-    "audio": "audio/cavernous-noise.wav",
-    "image": "images/cavernous-noise.svg",
+    "key": "cavernous",
+    "title": "Cavernous",
+    "category": "Spatial",
+    "audio": "audio/cavernous.wav",
+    "image": "images/cavernous.svg",
     "accent": "#4c8b91",
     "crossfadeSeconds": 0.2
   },
   {
     "key": "brown-noise",
     "title": "Brown Noise",
-    "category": "Focus",
+    "category": "Noise",                                                                    
     "audio": "audio/brown-noise.wav",
     "image": "images/brown-noise.svg",
     "accent": "#d97745",
@@ -38,7 +38,7 @@
   {
     "key": "amber-noise",
     "title": "Amber Noise",
-    "category": "Focus",
+    "category": "Noise",
     "audio": "audio/amber-noise.wav",
     "image": "images/amber-noise.svg",
     "accent": "#c18136",
@@ -47,16 +47,16 @@
   {
     "key": "pink-noise",
     "title": "Pink Noise",
-    "category": "Focus",
+    "category": "Noise",
     "audio": "audio/pink-noise.wav",
     "image": "images/pink-noise.svg",
     "accent": "#d65b88",
     "crossfadeSeconds": 0.2
   },
   {
-    "key": "blend-noise",
+    "key": "blend-noise",                                                                                                         
     "title": "Blend Noise",
-    "category": "Focus",
+    "category": "Noise",
     "audio": "audio/blend-noise.wav",
     "image": "images/blend-noise.svg",
     "accent": "#5c8ca0",
@@ -65,7 +65,7 @@
   {
     "key": "speech-masking-noise",
     "title": "Speech Masking Noise",
-    "category": "Focus",
+    "category": "Noise",
     "audio": "audio/speech-masking-noise.wav",
     "image": "images/speech-masking-noise.svg",
     "accent": "#8a7863",
@@ -74,7 +74,7 @@
   {
     "key": "green-noise",
     "title": "Green Noise",
-    "category": "Focus",
+    "category": "Noise",
     "audio": "audio/green-noise.wav",
     "image": "images/green-noise.svg",
     "accent": "#68a77b",
