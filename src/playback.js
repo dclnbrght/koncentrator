@@ -1,4 +1,5 @@
 const FADE_CURVE_STEPS = 64;
+const STOP_FADE_SECONDS = 0.025;
 
 const FADE_IN_CURVE = Float32Array.from(
   { length: FADE_CURVE_STEPS },
@@ -136,7 +137,15 @@ export function createPlaybackController(onError = () => {}, onPause = () => {})
 
     clearTimeout(playback.timer);
     for (const scheduledSource of playback.sources) {
-      releaseMediaElement(playback, scheduledSource);
+      if (!scheduledSource.started || audioContext?.state !== 'running') {
+        releaseMediaElement(playback, scheduledSource);
+        continue;
+      }
+
+      const stopTime = audioContext.currentTime;
+      scheduledSource.stopGain.gain.setValueAtTime(1, stopTime);
+      scheduledSource.stopGain.gain.linearRampToValueAtTime(0, stopTime + STOP_FADE_SECONDS);
+      setTimeout(() => releaseMediaElement(playback, scheduledSource), STOP_FADE_SECONDS * 1000);
     }
     playback.nextPrepared = null;
   }
@@ -157,11 +166,13 @@ export function createPlaybackController(onError = () => {}, onPause = () => {})
     mediaElement.preload = 'auto';
     const source = audioContext.createMediaElementSource(mediaElement);
     const gain = audioContext.createGain();
+    const stopGain = audioContext.createGain();
     gain.gain.value = 0;
     source.connect(gain);
-    gain.connect(audioContext.destination);
+    gain.connect(stopGain);
+    stopGain.connect(audioContext.destination);
 
-    const scheduledSource = { source, gain, mediaElement, duration: 0, started: false };
+    const scheduledSource = { source, gain, stopGain, mediaElement, duration: 0, started: false };
     playback.sources.add(scheduledSource);
     mediaElement.src = playback.audioPath;
 
@@ -272,6 +283,7 @@ export function createPlaybackController(onError = () => {}, onPause = () => {})
     scheduledSource.mediaElement.removeAttribute('src');
     scheduledSource.source.disconnect();
     scheduledSource.gain.disconnect();
+    scheduledSource.stopGain.disconnect();
     playback.sources.delete(scheduledSource);
   }
 
