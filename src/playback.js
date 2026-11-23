@@ -1,5 +1,8 @@
 const FADE_CURVE_STEPS = 64;
-const STOP_FADE_SECONDS = 0.025;
+const START_FADE_SECONDS = 0.5;
+const START_FADE_DELAY_SECONDS = 0.05;
+const STOP_FADE_SECONDS = 0.12;
+const STOP_CLEANUP_DELAY_MS = STOP_FADE_SECONDS * 1000 + 50;
 
 const FADE_IN_CURVE = Float32Array.from(
   { length: FADE_CURVE_STEPS },
@@ -50,7 +53,7 @@ export function createPlaybackController(onError = () => {}, onPause = () => {})
       }
 
       const fadeDuration = Math.min(crossfadeSeconds, firstElement.duration / 4);
-      await startCrossfadedElement(playback, firstElement, fadeDuration);
+      await startCrossfadedElement(playback, firstElement, fadeDuration, true);
     } catch (error) {
       stopPlayback(playback);
       throw error;
@@ -144,8 +147,12 @@ export function createPlaybackController(onError = () => {}, onPause = () => {})
 
       const stopTime = audioContext.currentTime;
       scheduledSource.stopGain.gain.setValueAtTime(1, stopTime);
-      scheduledSource.stopGain.gain.linearRampToValueAtTime(0, stopTime + STOP_FADE_SECONDS);
-      setTimeout(() => releaseMediaElement(playback, scheduledSource), STOP_FADE_SECONDS * 1000);
+      scheduledSource.stopGain.gain.setValueCurveAtTime(
+        FADE_OUT_CURVE,
+        stopTime,
+        STOP_FADE_SECONDS,
+      );
+      setTimeout(() => releaseMediaElement(playback, scheduledSource), STOP_CLEANUP_DELAY_MS);
     }
     playback.nextPrepared = null;
   }
@@ -158,7 +165,7 @@ export function createPlaybackController(onError = () => {}, onPause = () => {})
     }
 
     scheduledSource.mediaElement.loop = true;
-    await startMediaElement(playback, scheduledSource, 0);
+    await startMediaElement(playback, scheduledSource, 0, START_FADE_SECONDS, true);
   }
 
   async function createMediaElement(playback) {
@@ -200,8 +207,8 @@ export function createPlaybackController(onError = () => {}, onPause = () => {})
     }
   }
 
-  async function startCrossfadedElement(playback, scheduledSource, fadeDuration) {
-    await startMediaElement(playback, scheduledSource, fadeDuration);
+  async function startCrossfadedElement(playback, scheduledSource, fadeDuration, isInitial = false) {
+    await startMediaElement(playback, scheduledSource, fadeDuration, fadeDuration, isInitial);
     if (activePlayback !== playback || !scheduledSource.started) return;
 
     playback.nextBoundarySource = scheduledSource;
@@ -209,10 +216,20 @@ export function createPlaybackController(onError = () => {}, onPause = () => {})
     void prepareNextElement(playback, fadeDuration);
   }
 
-  async function startMediaElement(playback, scheduledSource, fadeDuration) {
+  async function startMediaElement(
+    playback,
+    scheduledSource,
+    fadeDuration,
+    startFadeDuration = fadeDuration,
+    isInitial = false,
+  ) {
     const { mediaElement, gain } = scheduledSource;
     scheduledSource.started = true;
+    const playbackStarted = new Promise((resolve) => {
+      mediaElement.addEventListener('playing', resolve, { once: true });
+    });
     await mediaElement.play();
+    await playbackStarted;
     if (activePlayback !== playback) {
       releaseMediaElement(playback, scheduledSource);
       return;
@@ -222,15 +239,21 @@ export function createPlaybackController(onError = () => {}, onPause = () => {})
       return;
     }
 
-    const startTime = audioContext.currentTime;
-    if (fadeDuration > 0) {
-      const fadeOutStart = startTime + scheduledSource.duration - fadeDuration;
+    const startTime = audioContext.currentTime
+      + (isInitial ? START_FADE_DELAY_SECONDS : 0);
+    const fadeInDuration = Math.min(startFadeDuration, scheduledSource.duration / 4);
+    if (fadeInDuration > 0) {
       gain.gain.setValueAtTime(0, startTime);
-      gain.gain.setValueCurveAtTime(FADE_IN_CURVE, startTime, fadeDuration);
-      gain.gain.setValueAtTime(1, fadeOutStart);
-      gain.gain.setValueCurveAtTime(FADE_OUT_CURVE, fadeOutStart, fadeDuration);
+      gain.gain.setValueCurveAtTime(FADE_IN_CURVE, startTime, fadeInDuration);
+      gain.gain.setValueAtTime(1, startTime + fadeInDuration);
     } else {
       gain.gain.setValueAtTime(1, startTime);
+    }
+
+    if (fadeDuration > 0) {
+      const fadeOutStart = startTime + scheduledSource.duration - fadeDuration;
+      gain.gain.setValueAtTime(1, fadeOutStart);
+      gain.gain.setValueCurveAtTime(FADE_OUT_CURVE, fadeOutStart, fadeDuration);
     }
   }
 
