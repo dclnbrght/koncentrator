@@ -245,14 +245,12 @@ export function createPlaybackController(onError = () => {}, onPause = () => {})
     if (fadeInDuration > 0) {
       gain.gain.setValueAtTime(0, startTime);
       gain.gain.setValueCurveAtTime(FADE_IN_CURVE, startTime, fadeInDuration);
-      gain.gain.setValueAtTime(1, startTime + fadeInDuration);
     } else {
       gain.gain.setValueAtTime(1, startTime);
     }
 
     if (fadeDuration > 0) {
       const fadeOutStart = startTime + scheduledSource.duration - fadeDuration;
-      gain.gain.setValueAtTime(1, fadeOutStart);
       gain.gain.setValueCurveAtTime(FADE_OUT_CURVE, fadeOutStart, fadeDuration);
     }
   }
